@@ -1,0 +1,18 @@
+[package]
+name = "portal_tools"
+version = "0.1.0"
+authors = ["wozniak"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.release]
+lto = true
+
+[dependencies]
+native-windows-gui = "1.0.8"
+native-windows-derive = "1.0.3"
+hex = "0.4"
+vtf = "0.1.3"
+image = "0.22.4"
+imageproc = "0.19.2"
