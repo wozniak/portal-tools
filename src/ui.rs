@@ -30,7 +30,7 @@ pub struct PortalTools {
     #[nwg_layout_item(layout: grid, row: 0, col: 1, col_span: 2)]
     pub blue_box: nwg::TextInput,
 
-    #[nwg_control(text: "FFA020")]
+    #[nwg_control(text: "ff9a00")]
     #[nwg_layout_item(layout: grid, row: 1, col: 1, col_span: 2)]
     pub orange_box: nwg::TextInput,
 
