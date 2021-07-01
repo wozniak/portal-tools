@@ -77,6 +77,10 @@ pub struct PortalTools {
     #[nwg_layout_item(layout: grid, row: 4, col: 2)]
     pub crosshair_check: nwg::CheckBox,
 
+    #[nwg_control(text: "Particles")]
+    #[nwg_layout_item(layout: grid, row: 4, col: 3)]
+    pub particles_check: nwg::CheckBox,
+
     #[nwg_control(text: "Apply")]
     #[nwg_layout_item(layout: grid, col: 0, row: 4)]
     #[nwg_events(OnButtonClick: [PortalTools::apply])]

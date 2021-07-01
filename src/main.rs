@@ -90,9 +90,10 @@ impl PortalTools {
     pub fn apply(&self) {
         let do_portals = nwg::CheckBoxState::Checked == self.portals_check.check_state();
         let do_crosshair = nwg::CheckBoxState::Checked == self.crosshair_check.check_state();
+        let do_particles = nwg::CheckBoxState::Checked == self.particles_check.check_state();
 
         // if no boxes checked, do nothing
-        if !(do_portals || do_crosshair) {
+        if !(do_portals || do_crosshair || do_particles) {
             return;
         }
 
@@ -105,7 +106,7 @@ impl PortalTools {
                 let _ = nwg::modal_error_message(
                     &self.window,
                     "Portal Tools",
-                    "Invalid game dir (pick the folder with hl2.exe",
+                    "Invalid game dir (pick the folder with hl2.exe)",
                 );
                 return;
             }
@@ -143,6 +144,11 @@ impl PortalTools {
         }
         if do_crosshair {
             if let Err(e) = self.crosshair(colors) {
+                error = e;
+            }
+        }
+        if do_particles {
+            if let Err(e) = self.particles(colors) {
                 error = e;
             }
         }
@@ -188,6 +194,10 @@ impl PortalTools {
                 self.path("portal/custom/portaltools/materials/models/portals/"),
             )
             .expect("your hard drive is dying");
+            fs::create_dir_all(
+                self.path("portal/custom/portaltools/sprites/"),
+            )
+            .expect("your hard drive is dying");
             "portal/custom/portaltools/".to_string()
         } else {
             "portal/".to_string()
@@ -197,6 +207,19 @@ impl PortalTools {
     fn portals(&self, colors: Colors) -> Result<(), String> {
         let grey_dx9 = image::load_from_memory(include_bytes!("dx9.png")).unwrap();
         let grey_dx8 = image::load_from_memory(include_bytes!("dx8.png")).unwrap();
+        let grey_light = image::load_from_memory(include_bytes!("light.png")).unwrap();
+        let grey_bluebeam = image::load_from_memory(include_bytes!("strider_bluebeam.png")).unwrap();
+
+        let color_bluebeam = grey_to_color(&grey_bluebeam, image::Rgba([colors.blue.r, colors.blue.g, colors.blue.b, 255]));
+        let vtf_bytes_light = vtf::create(color_bluebeam, vtf::ImageFormat::Rgba8888).unwrap();
+
+        self.write(
+            &format!(
+                "{}/materials/sprites/strider_bluebeam.vtf",
+                self.prefix(),
+            ),
+            vtf_bytes_light,
+        );
 
         for i in 0..2u8 {
             let color = colors[i];
@@ -209,11 +232,11 @@ impl PortalTools {
 
             let color_dx9 = grey_to_color(&grey_dx9, image::Rgba([color.r, color.g, color.b, 255]));
             let color_dx8 = grey_to_color(&grey_dx8, image::Rgba([color.r, color.g, color.b, 255]));
+            let color_light = grey_to_color(&grey_light, image::Rgba([color.r, color.g, color.b, 255]));
 
             let vtf_bytes_dx9 = vtf::create(color_dx9, vtf::ImageFormat::Rgba8888).unwrap();
             let vtf_bytes_dx8 = vtf::create(color_dx8, vtf::ImageFormat::Rgba8888).unwrap();
-
-            let mut prefix = "portal";
+            let vtf_bytes_light = vtf::create(color_light, vtf::ImageFormat::Rgba8888).unwrap();
 
             self.write(
                 &format!(
@@ -229,7 +252,66 @@ impl PortalTools {
                 ),
                 vtf_bytes_dx8,
             );
+            self.write(
+                &format!(
+                    "{}/materials/sprites/{}light.vtf",
+                    self.prefix(), color_name
+                ),
+                vtf_bytes_light,
+            );
         }
+
+        Ok(())
+    }
+
+    fn particles(&self, colors: Colors) -> Result<(), String> {
+        let portal_projectile_df = include_bytes!("portal_projectile.pcf");
+        let portals_df = include_bytes!("portals.pcf");
+        let portalgun_df = include_bytes!("portalgun.pcf");
+
+        let mut portal_projectile = portal_projectile_df.to_vec();
+        let mut portals = portals_df.to_vec();
+        let mut portalgun = portalgun_df.to_vec();
+
+        for c in portal_projectile_df.windows(3).enumerate() {
+            if c.1 == &[0x8C, 0xFF, 0xDB] {
+                portal_projectile[c.0] = colors.blue.r;
+                portal_projectile[c.0 + 1] = colors.blue.g;
+                portal_projectile[c.0 + 2] = colors.blue.b;
+            } else if c.1 == &[0xE6, 0x61, 0x00] {
+                portal_projectile[c.0] = colors.orange.r;
+                portal_projectile[c.0 + 1] = colors.orange.g;
+                portal_projectile[c.0 + 2] = colors.orange.b;
+            }
+        }
+
+        for c in portals_df.windows(3).enumerate() {
+            if c.1 == &[0x8C, 0xFF, 0xDB] {
+                portals[c.0] = colors.blue.r;
+                portals[c.0 + 1] = colors.blue.g;
+                portals[c.0 + 2] = colors.blue.b;
+            } else if c.1 == &[0xE6, 0x61, 0x00] {
+                portals[c.0] = colors.orange.r;
+                portals[c.0 + 1] = colors.orange.g;
+                portals[c.0 + 2] = colors.orange.b;
+            }
+        }
+
+        for c in portalgun_df.windows(3).enumerate() {
+            if c.1 == &[0x8C, 0xFF, 0xDB] {
+                portalgun[c.0] = colors.blue.r;
+                portalgun[c.0 + 1] = colors.blue.g;
+                portalgun[c.0 + 2] = colors.blue.b;
+            } else if c.1 == &[0xE6, 0x61, 0x00] {
+                portalgun[c.0] = colors.orange.r;
+                portalgun[c.0 + 1] = colors.orange.g;
+                portalgun[c.0 + 2] = colors.orange.b;
+            }
+        }
+
+        fs::write(self.path("portal/particles/portal_projectile.pcf"), portal_projectile).map_err(|p| p.to_string())?;
+        fs::write(self.path("portal/particles/portals.pcf"), portals).map_err(|p| p.to_string())?;
+        fs::write(self.path("portal/bin/portalgun.pcf"), portalgun).map_err(|p| p.to_string())?;
 
         Ok(())
     }
